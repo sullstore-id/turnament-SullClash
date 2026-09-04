@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SULLCLASH — Turnamen Mobile Legends</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0a0612;
+    --bg-2: #130a22;
+    --purple: #8b2fe0;
+    --purple-light: #b565f5;
+    --purple-glow: #c084fc;
+    --white: #f5f3fa;
+    --muted: #a398b8;
+    --line: rgba(181, 101, 245, 0.25);
+    --card: #150c26;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+  .app{ position:relative; min-height:100vh; }
+  h1,h2,h3, .display{
+    font-family: 'Rajdhani', sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  /* ---------- background atmosphere ---------- */
+  .bg-glow{
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(600px 400px at 15% 0%, rgba(139,47,224,0.35), transparent 60%),
+      radial-gradient(500px 500px at 90% 20%, rgba(181,101,245,0.18), transparent 60%),
+      radial-gradient(700px 500px at 50% 100%, rgba(139,47,224,0.2), transparent 60%);
+  }
+  .bg-grid{
+    position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.35;
+    background-image:
+      linear-gradient(rgba(181,101,245,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(181,101,245,0.06) 1px, transparent 1px);
+    background-size: 44px 44px;
+    mask-image: linear-gradient(to bottom, black, transparent 85%);
+  }
+
+  .page{ position: relative; z-index: 1; }
+
+  /* ---------- shared bits ---------- */
+  .wrap{ max-width: 760px; margin: 0 auto; padding: 0 20px; }
+  .chip{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size: 13px; font-weight: 600; color: var(--purple-light);
+    border: 1px solid var(--line); padding: 6px 14px;
+    clip-path: polygon(10px 0, 100% 0, 100% 100%, 0 100%, 0 10px);
+    background: rgba(139,47,224,0.08);
+  }
+  .dot-live{
+    width:7px; height:7px; border-radius:50%; background:#ff4d6d;
+    box-shadow: 0 0 8px #ff4d6d;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:0.35;} }
+
+  /* ---------- header ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 22px 0;
+  }
+  .brand{
+    font-family:'Rajdhani', sans-serif; font-weight:700; font-size:22px;
+    letter-spacing: 0.03em;
+  }
+  .brand span{ color: var(--purple-light); }
+
+  /* ---------- hero ---------- */
+  .hero{ padding: 40px 0 10px; text-align:center; }
+  .hero-title{
+    font-size: clamp(48px, 13vw, 84px);
+    line-height: 0.95;
+    background: linear-gradient(180deg, var(--white) 20%, var(--purple-light) 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 60px rgba(139,47,224,0.45);
+    animation: rise 900ms ease-out;
+  }
+  @keyframes rise{ from{ opacity:0; transform: translateY(16px);} to{opacity:1; transform:translateY(0);} }
+  .hero-sub{
+    margin-top: 14px; color: var(--muted); font-size: 16px; line-height:1.6;
+    max-width: 480px; margin-left:auto; margin-right:auto;
+  }
+  .hero-badges{
+    display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top: 22px;
+  }
+
+  /* ---------- slot counter ---------- */
+  .slots{
+    margin: 34px auto 0; max-width: 460px;
+    border: 1px solid var(--line); background: var(--card);
+    clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+    padding: 20px 22px;
+  }
+  .slots-top{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom: 10px;}
+  .slots-label{ font-size:13px; color: var(--muted); font-weight:600; }
+  .slots-count{ font-family:'Rajdhani',sans-serif; font-size: 22px; font-weight:700; }
+  .slots-count b{ color: var(--purple-light); font-size:26px; }
+  .bar-track{ height: 10px; background: rgba(255,255,255,0.06); position:relative; overflow:hidden; clip-path: polygon(6px 0,100% 0,100% 100%,0 100%,0 6px);}
+  .bar-fill{
+    height:100%; width:0%;
+    background: linear-gradient(90deg, var(--purple), var(--purple-glow));
+    box-shadow: 0 0 12px var(--purple-glow);
+    transition: width 900ms cubic-bezier(.2,.8,.2,1);
+  }
+  .slots-note{ margin-top:10px; font-size:12.5px; color: var(--muted); }
+
+  /* ---------- info cards ---------- */
+  .info-grid{
+    display:grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    margin-top: 30px;
+  }
+  .card{
+    border:1px solid var(--line); background: var(--card);
+    padding: 18px 18px;
+    clip-path: polygon(12px 0, 100% 0, 100% 100%, 0 100%, 0 12px);
+  }
+  .card-label{ font-size:12px; color: var(--muted); font-weight:600; margin-bottom:6px; }
+  .card-value{ font-family:'Rajdhani',sans-serif; font-size: 21px; font-weight:700; }
+  .card-value.accent{ color: var(--purple-light); }
+  .card.wide{ grid-column: 1 / -1; }
+  .winners-row{ display:flex; gap: 18px; margin-top:6px; flex-wrap:wrap; }
+  .winner{ display:flex; flex-direction:column; }
+  .winner .n{ font-size:11px; color:var(--muted); }
+  .winner .v{ font-family:'Rajdhani',sans-serif; font-weight:700; font-size:18px; }
+
+  /* ---------- CTA ---------- */
+  .cta-wrap{ text-align:center; margin: 34px 0 46px; }
+  .btn{
+    font-family:'Rajdhani', sans-serif; font-weight:700; font-size:17px; letter-spacing:0.02em;
+    color: var(--bg); background: linear-gradient(90deg, var(--purple-light), var(--purple));
+    border:none; padding: 15px 40px; cursor:pointer;
+    clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+    box-shadow: 0 0 0 rgba(192,132,252,0);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+  }
+  .btn:hover{ transform: translateY(-2px); box-shadow: 0 8px 24px rgba(139,47,224,0.4); }
+  .btn:active{ transform: translateY(0); }
+  .btn:disabled{ opacity:0.45; cursor:not-allowed; transform:none; box-shadow:none; }
+  .btn-ghost{
+    background: transparent; color: var(--purple-light);
+    border: 1px solid var(--line); font-family:'Rajdhani',sans-serif; font-weight:600;
+    padding: 10px 18px; cursor:pointer; font-size:14px;
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+  }
+
+  /* ---------- registered teams strip ---------- */
+  .teams-strip{ margin: 10px 0 50px; }
+  .teams-strip h3{ font-size:15px; color: var(--muted); font-weight:600; margin-bottom:12px; font-family:'Plus Jakarta Sans'; }
+  .teams-list{ display:flex; flex-direction:column; gap:8px; max-height: 230px; overflow-y:auto; }
+  .team-row{
+    display:flex; align-items:center; gap:10px; padding: 10px 14px;
+    border:1px solid var(--line); background: rgba(139,47,224,0.05);
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+    font-size: 14px;
+  }
+  .team-row .num{ color: var(--purple-light); font-family:'Rajdhani'; font-weight:700; width:24px; }
+  .team-row .empty{ color: var(--muted); font-style: normal; }
+
+  footer{ text-align:center; padding: 20px 0 50px; color: var(--muted); font-size:12.5px; }
+
+  /* ---------- registration page ---------- */
+  #regPage{ display:none; }
+  .reg-shell{ padding: 22px 0 60px; }
+  .reg-back{ display:flex; align-items:center; gap:8px; margin-bottom: 18px; }
+  .reg-title{ font-size: 34px; margin-bottom:6px; }
+  .reg-sub{ color: var(--muted); font-size:14.5px; margin-bottom: 28px; }
+
+  .field{ margin-bottom: 18px; }
+  .field label{ display:block; font-size: 13px; font-weight:600; color: var(--purple-light); margin-bottom:7px; }
+  .field input{
+    width:100%; background: var(--card); border:1px solid var(--line);
+    color: var(--white); padding: 13px 14px; font-size:15px;
+    font-family:'Plus Jakarta Sans'; outline:none;
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+  }
+  .field input:focus{ border-color: var(--purple-light); box-shadow: 0 0 0 3px rgba(181,101,245,0.15); }
+  .field input::placeholder{ color: #5f5476; }
+
+  .players-block{ border-top:1px solid var(--line); padding-top: 18px; margin-top: 6px; }
+  .players-block > .label-top{ font-size:13px; font-weight:600; color:var(--muted); margin-bottom:14px; }
+  .player-row{
+    display:grid; grid-template-columns: 24px 1fr 110px; gap:10px; align-items:center;
+    margin-bottom:12px;
+  }
+  .player-num{ font-family:'Rajdhani'; font-weight:700; color: var(--purple-light); text-align:center; }
+  .player-row input{
+    background: var(--card); border:1px solid var(--line); color:var(--white);
+    padding: 11px 12px; font-size:14px; font-family:'Plus Jakarta Sans'; outline:none;
+    clip-path: polygon(6px 0, 100% 0, 100% 100%, 0 100%, 0 6px);
+  }
+  .player-row input:focus{ border-color: var(--purple-light); }
+
+  .form-msg{
+    margin-top: 16px; font-size: 13.5px; padding: 10px 14px;
+    clip-path: polygon(8px 0, 100% 0, 100% 100%, 0 100%, 0 8px);
+    display:none;
+  }
+  .form-msg.error{ display:block; background: rgba(255,77,109,0.1); color:#ff8fa3; border:1px solid rgba(255,77,109,0.3); }
+  .form-msg.ok{ display:block; background: rgba(139,47,224,0.15); color: var(--purple-light); border:1px solid var(--line); }
+
+  .submit-row{ margin-top: 24px; display:flex; justify-content:flex-end; }
+
+  /* success overlay */
+  .success{
+    display:none; text-align:center; padding: 70px 0;
+  }
+  .success .check{
+    width:74px; height:74px; margin:0 auto 20px; border-radius:50%;
+    border: 2px solid var(--purple-light);
+    display:flex; align-items:center; justify-content:center;
+    animation: pop 500ms cubic-bezier(.2,.8,.2,1);
+    box-shadow: 0 0 30px rgba(192,132,252,0.35);
+  }
+  @keyframes pop{ from{ transform:scale(0.4); opacity:0;} to{ transform:scale(1); opacity:1;} }
+  .success h2{ font-size:28px; margin-bottom:8px; }
+  .success p{ color: var(--muted); font-size:14.5px; max-width:340px; margin:0 auto; }
+
+  @media (max-width: 520px){
+    .info-grid{ grid-template-columns: 1fr; }
+    .hero-title{ font-size: 52px; }
+    .player-row{ grid-template-columns: 20px 1fr 90px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="bg-glow"></div>
+  <div class="bg-grid"></div>
+
+  <!-- ================= LANDING PAGE ================= -->
+  <div class="page" id="landingPage">
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">SULL<span>CLASH</span></div>
+        <div class="chip"><span class="dot-live"></span> LIVE di TikTok</div>
+      </div>
+
+      <div class="hero">
+        <h1 class="hero-title">SULLCLASH</h1>
+        <p class="hero-sub">Turnamen Mobile Legends antar squad. 30 tim akan bertarung habis-habisan memperebutkan gelar juara dan total hadiah SULLCLASH Season 1.</p>
+        <div class="hero-badges">
+          <div class="chip">🏆 3 Juara</div>
+          <div class="chip">👥 5 Pemain / Tim</div>
+          <div class="chip">📅 Mulai 22 Sept 2026</div>
+        </div>
+      </div>
+
+      <div class="slots">
+        <div class="slots-top">
+          <span class="slots-label">SLOT TERISI</span>
+          <span class="slots-count" id="slotsCount"><b>0</b> / 30 tim</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill" id="barFill"></div></div>
+        <div class="slots-note" id="slotsNote">Pendaftaran dibuka — jadilah salah satu dari 30 tim.</div>
+      </div>
+
+      <div class="info-grid">
+        <div class="card">
+          <div class="card-label">PRIZEPOOL</div>
+          <div class="card-value accent">Rp 1.000.000</div>
+        </div>
+        <div class="card">
+          <div class="card-label">MULAI TURNAMEN</div>
+          <div class="card-value">22 Sept 2026</div>
+        </div>
+        <div class="card wide">
+          <div class="card-label">PEMBAGIAN JUARA</div>
+          <div class="winners-row">
+            <div class="winner"><span class="n">JUARA 1</span><span class="v">Rp 500.000</span></div>
+            <div class="winner"><span class="n">JUARA 2</span><span class="v">Rp 300.000</span></div>
+            <div class="winner"><span class="n">JUARA 3</span><span class="v">Rp 200.000</span></div>
+          </div>
+        </div>
+        <div class="card wide">
+          <div class="card-label">SIARAN LANGSUNG</div>
+          <div class="card-value">Seluruh pertandingan tayang live di TikTok <span class="accent">@sull.presett</span></div>
+        </div>
+      </div>
+
+      <div class="cta-wrap">
+        <button class="btn" id="openRegBtn">DAFTAR DISINI</button>
+      </div>
+
+      <div class="teams-strip">
+        <h3>Tim yang sudah terdaftar</h3>
+        <div class="teams-list" id="teamsList">
+          <div class="team-row"><span class="empty">Memuat data tim terdaftar…</span></div>
+        </div>
+      </div>
+
+      <footer>SULLCLASH — dibuat oleh SullDev</footer>
+    </div>
+  </div>
+
+  <!-- ================= REGISTRATION PAGE ================= -->
+  <div class="page" id="regPage">
+    <div class="wrap reg-shell">
+
+      <div id="formView">
+        <div class="reg-back">
+          <button class="btn-ghost" id="backBtn">&larr; Kembali</button>
+        </div>
+        <h2 class="reg-title">Formulir Pendaftaran</h2>
+        <p class="reg-sub">Isi data tim kamu dengan lengkap. Pastikan ID game setiap pemain benar sebelum mengirim.</p>
+
+        <form id="teamForm">
+          <div class="field">
+            <label>Nama Tim</label>
+            <input type="text" id="teamName" placeholder="Contoh: Aegis Squad" required>
+          </div>
+          <div class="field">
+            <label>Nomor HP Ketua Tim</label>
+            <input type="tel" id="captainPhone" placeholder="08xxxxxxxxxx" required>
+          </div>
+
+          <div class="players-block">
+            <div class="label-top">DATA PEMAIN (5 PEMAIN INTI)</div>
+            <div id="playersWrap"></div>
+          </div>
+
+          <div class="form-msg" id="formMsg"></div>
+
+          <div class="submit-row">
+            <button type="submit" class="btn" id="submitBtn">KIRIM PENDAFTARAN</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="success" id="successView">
+        <div class="check">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M4 12.5L9.5 18L20 6" stroke="#c084fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h2>Pendaftaran Berhasil</h2>
+        <p>Tim kamu sudah tercatat di SULLCLASH. Pantau info jadwal pertandingan lewat live TikTok <b style="color:var(--purple-light)">@sull.presett</b>.</p>
+        <div style="margin-top:26px;"><button class="btn-ghost" id="backFromSuccess">&larr; Kembali ke Beranda</button></div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+const MAX_SLOTS = 30;
+const STORAGE_KEY = 'sullclash:teams';
+
+const landingPage = document.getElementById('landingPage');
+const regPage = document.getElementById('regPage');
+const formView = document.getElementById('formView');
+const successView = document.getElementById('successView');
+const openRegBtn = document.getElementById('openRegBtn');
+const backBtn = document.getElementById('backBtn');
+const backFromSuccess = document.getElementById('backFromSuccess');
+const playersWrap = document.getElementById('playersWrap');
+const teamForm = document.getElementById('teamForm');
+const formMsg = document.getElementById('formMsg');
+const submitBtn = document.getElementById('submitBtn');
+
+// build 5 player rows
+for (let i = 1; i <= 5; i++) {
+  const row = document.createElement('div');
+  row.className = 'player-row';
+  row.innerHTML = `
+    <span class="player-num">${i}</span>
+    <input type="text" placeholder="Nama pemain" data-role="pname" required>
+    <input type="text" placeholder="ID Game" data-role="pid" required>
+  `;
+  playersWrap.appendChild(row);
+}
+
+function showReg(){
+  landingPage.style.display = 'none';
+  regPage.style.display = 'block';
+  formView.style.display = 'block';
+  successView.style.display = 'none';
+  window.scrollTo(0,0);
+}
+function showLanding(){
+  regPage.style.display = 'none';
+  landingPage.style.display = 'block';
+  window.scrollTo(0,0);
+  loadTeams();
+}
+openRegBtn.addEventListener('click', showReg);
+backBtn.addEventListener('click', showLanding);
+backFromSuccess.addEventListener('click', showLanding);
+
+async function loadTeams(){
+  let teams = [];
+  try{
+    const res = await window.storage.get(STORAGE_KEY, true);
+    if(res && res.value){ teams = JSON.parse(res.value); }
+  }catch(e){
+    teams = [];
+  }
+  renderTeams(teams);
+  return teams;
+}
+
+function renderTeams(teams){
+  const count = teams.length;
+  const pct = Math.min(100, Math.round((count / MAX_SLOTS) * 100));
+  document.getElementById('slotsCount').innerHTML = `<b>${count}</b> / ${MAX_SLOTS} tim`;
+  document.getElementById('barFill').style.width = pct + '%';
+
+  const note = document.getElementById('slotsNote');
+  const openBtn = document.getElementById('openRegBtn');
+  if(count >= MAX_SLOTS){
+    note.textContent = 'Slot penuh — pendaftaran ditutup.';
+    openBtn.disabled = true;
+  } else {
+    note.textContent = `Sisa ${MAX_SLOTS - count} slot lagi — jadilah salah satu dari 30 tim.`;
+    openBtn.disabled = false;
+  }
+
+  const list = document.getElementById('teamsList');
+  if(count === 0){
+    list.innerHTML = `<div class="team-row"><span class="empty">Belum ada tim yang mendaftar. Jadilah yang pertama!</span></div>`;
+  } else {
+    list.innerHTML = teams.map((t, idx) => `
+      <div class="team-row">
+        <span class="num">${String(idx+1).padStart(2,'0')}</span>
+        <span>${escapeHtml(t.teamName)}</span>
+      </div>
+    `).reverse().join('');
+  }
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function setMsg(text, type){
+  formMsg.textContent = text;
+  formMsg.className = 'form-msg ' + type;
+}
+
+teamForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  setMsg('', '');
+
+  const teamName = document.getElementById('teamName').value.trim();
+  const captainPhone = document.getElementById('captainPhone').value.trim();
+  const pnames = Array.from(document.querySelectorAll('[data-role="pname"]')).map(i => i.value.trim());
+  const pids = Array.from(document.querySelectorAll('[data-role="pid"]')).map(i => i.value.trim());
+
+  if(!teamName || !captainPhone || pnames.some(v => !v) || pids.some(v => !v)){
+    setMsg('Lengkapi semua data sebelum mengirim.', 'error');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'MENGIRIM...';
+
+  try{
+    let teams = [];
+    try{
+      const res = await window.storage.get(STORAGE_KEY, true);
+      if(res && res.value){ teams = JSON.parse(res.value); }
+    }catch(e){ teams = []; }
+
+    if(teams.length >= MAX_SLOTS){
+      setMsg('Maaf, slot sudah penuh (30/30 tim).', 'error');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'KIRIM PENDAFTARAN';
+      return;
+    }
+
+    const newTeam = {
+      teamName,
+      captainPhone,
+      players: pnames.map((n, i) => ({ name: n, id: pids[i] })),
+      registeredAt: new Date().toISOString()
+    };
+    teams.push(newTeam);
+
+    const saved = await window.storage.set(STORAGE_KEY, JSON.stringify(teams), true);
+    if(!saved){ throw new Error('Gagal menyimpan'); }
+
+    formView.style.display = 'none';
+    successView.style.display = 'block';
+    teamForm.reset();
+  }catch(err){
+    setMsg('Terjadi kendala saat menyimpan data. Coba lagi.', 'error');
+  }finally{
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'KIRIM PENDAFTARAN';
+  }
+});
+
+loadTeams();
+</script>
+</body>
+</html>
